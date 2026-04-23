@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CyberVault Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0a0a;--bg2:#111;--bg3:#181818;--bg4:#1e1e1e;
+  --accent:#f5a623;--white:#f0f0f0;--muted:#555;
+  --border:#222;--green:#2ecc71;--red:#e74c3c;--blue:#3498db;
+  --sidebar:240px;
+}
+html,body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);height:100%;}
+
+/* ===== LOGIN ===== */
+#adminLogin{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;}
+.login-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:40px;width:380px;}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;justify-content:center;}
+.login-logo-icon{width:40px;height:40px;background:#f5a623;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.login-logo-icon svg{width:22px;height:22px;}
+.login-logo-text{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;}
+.login-logo-text span{color:var(--accent);}
+.login-box h2{font-family:'Syne',sans-serif;font-size:20px;text-align:center;margin-bottom:6px;}
+.login-box p{font-size:12px;color:var(--muted);text-align:center;margin-bottom:24px;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+.form-group input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:'Outfit',sans-serif;font-size:13px;padding:12px 14px;border-radius:8px;outline:none;transition:border-color 0.2s;}
+.form-group input:focus{border-color:var(--accent);}
+.login-btn{width:100%;background:var(--accent);color:#000;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;padding:14px;border-radius:8px;border:none;cursor:pointer;margin-top:4px;transition:all 0.2s;}
+.login-btn:hover{background:#e09400;}
+.login-error{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#e74c3c;font-size:12px;padding:10px;border-radius:7px;margin-bottom:14px;display:none;}
+.login-note{font-size:11px;color:#333;text-align:center;margin-top:14px;}
+
+/* ===== LAYOUT ===== */
+#adminPanel{display:none;min-height:100vh;display:none;}
+#adminPanel.visible{display:flex;}
+.sidebar{width:var(--sidebar);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:100;overflow-y:auto;}
+.sidebar-logo{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sidebar-logo-icon{width:32px;height:32px;background:#f5a623;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sidebar-logo-icon svg{width:18px;height:18px;}
+.sidebar-logo-text{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;}
+.sidebar-logo-text span{color:var(--accent);}
+.sidebar-tag{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:8px 20px 4px;}
+.sidebar-menu{list-style:none;padding:8px 12px;flex:1;}
+.sidebar-menu li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:2px;transition:all 0.2s;}
+.sidebar-menu li:hover{background:var(--bg3);color:var(--white);}
+.sidebar-menu li.active{background:rgba(245,166,35,0.1);color:var(--accent);}
+.sidebar-menu li svg{width:16px;height:16px;flex-shrink:0;}
+.sidebar-badge{background:#e74c3c;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px;margin-left:auto;}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border);}
+.admin-info{display:flex;align-items:center;gap:10px;}
+.admin-avatar{width:34px;height:34px;border-radius:50%;background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--accent);}
+.admin-name{font-size:12px;font-weight:600;}
+.admin-role{font-size:10px;color:var(--muted);}
+.logout-btn{width:100%;background:transparent;border:1px solid rgba(231,76,60,0.3);color:#e74c3c;font-family:'Outfit',sans-serif;font-size:12px;padding:8px;border-radius:7px;cursor:pointer;margin-top:10px;transition:all 0.2s;}
+.logout-btn:hover{background:rgba(231,76,60,0.1);}
+
+.main-content{margin-left:var(--sidebar);flex:1;padding:24px;min-height:100vh;}
+
+/* ===== TOP BAR ===== */
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.top-bar h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;}
+.top-bar-actions{display:flex;gap:10px;align-items:center;}
+.top-bar-badge{background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.3);color:#2ecc71;font-size:11px;font-weight:600;padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:6px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#2ecc71;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ===== STAT CARDS ===== */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;border-radius:3px 0 0 3px;}
+.stat-card.gold::before{background:var(--accent);}
+.stat-card.green::before{background:var(--green);}
+.stat-card.blue::before{background:var(--blue);}
+.stat-card.red::before{background:var(--red);}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.stat-label svg{width:14px;height:14px;}
+.stat-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-bottom:6px;}
+.stat-card.gold .stat-value{color:var(--accent);}
+.stat-card.green .stat-value{color:var(--green);}
+.stat-card.blue .stat-value{color:var(--blue);}
+.stat-card.red .stat-value{color:var(--red);}
+.stat-change{font-size:11px;}
+.stat-change.up{color:var(--green);}
+.stat-change.down{color:var(--red);}
+
+/* ===== SECTIONS ===== */
+.admin-section{display:none;}
+.admin-section.active{display:block;}
+.section-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;}
+.section-card h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* ===== TABLES ===== */
+.cv-table{width:100%;border-collapse:collapse;}
+.cv-table th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);}
+.cv-table td{font-size:13px;padding:13px 12px;border-bottom:1px solid rgba(34,34,34,0.5);vertical-align:middle;}
+.cv-table tr:hover td{background:rgba(245,166,35,0.02);}
+.cv-table tr:last-child td{border-bottom:none;}
+.status-pill{font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;}
+.status-pill.active,.status-pill.delivered{background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3);}
+.status-pill.processing{background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid rgba(245,166,35,0.3);}
+.status-pill.shipped{background:rgba(52,152,219,0.12);color:#3498db;border:1px solid rgba(52,152,219,0.3);}
+.status-pill.inactive,.status-pill.cancelled{background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);}
+.action-btns{display:flex;gap:6px;}
+.act-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Outfit',sans-serif;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;transition:all 0.2s;}
+.act-btn:hover{border-color:var(--accent);color:var(--accent);}
+.act-btn.del:hover{border-color:var(--red);color:var(--red);}
+
+/* ===== TOOLBAR ===== */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.toolbar-left{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.search-box{background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:'Outfit',sans-serif;font-size:12px;padding:9px 14px;border-radius:8px;outline:none;width:240px;transition:border-color 0.2s;}
+.search-box:focus{border-color:var(--accent);}
+.filter-select{background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:'Outfit',sans-serif;font-size:12px;padding:9px 12px;border-radius:8px;outline:none;}
+.add-btn{background:var(--accent);color:#000;font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;padding:9px 18px;border-radius:8px;border:none;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;}
+.add-btn:hover{background:#e09400;}
+.export-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Outfit',sans-serif;font-size:12px;padding:9px 14px;border-radius:8px;cursor:pointer;transition:all 0.2s;}
+.export-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ===== FORM IN CARD ===== */
+.admin-form{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.admin-form.single{grid-template-columns:1fr;}
+.form-field{display:flex;flex-direction:column;gap:6px;}
+.form-field.full{grid-column:1/-1;}
+.form-field label{font-size:12px;color:var(--muted);font-weight:500;}
+.form-field input,.form-field select,.form-field textarea{background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:'Outfit',sans-serif;font-size:13px;padding:11px 14px;border-radius:8px;outline:none;transition:border-color 0.2s;width:100%;}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--accent);}
+.form-field select option{background:var(--bg3);}
+.form-field textarea{resize:vertical;min-height:80px;}
+.submit-btn{background:var(--accent);color:#000;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;transition:all 0.2s;margin-top:4px;}
+.submit-btn:hover{background:#e09400;}
+
+/* ===== CHART BARS ===== */
+.mini-chart{display:flex;align-items:flex-end;gap:6px;height:80px;margin-top:12px;}
+.chart-bar{flex:1;border-radius:4px 4px 0 0;background:rgba(245,166,35,0.2);border:1px solid rgba(245,166,35,0.3);transition:all 0.3s;position:relative;cursor:pointer;}
+.chart-bar:hover{background:rgba(245,166,35,0.4);}
+.chart-bar .bar-tip{position:absolute;bottom:calc(100%+4px);left:50%;transform:translateX(-50%);background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px;white-space:nowrap;opacity:0;transition:opacity 0.2s;}
+.chart-bar:hover .bar-tip{opacity:1;}
+
+/* ===== TOGGLE SWITCH ===== */
+.toggle-wrap{display:flex;align-items:center;gap:8px;}
+.toggle{width:36px;height:20px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;position:relative;cursor:pointer;transition:all 0.2s;}
+.toggle.on{background:rgba(46,204,113,0.2);border-color:rgba(46,204,113,0.4);}
+.toggle::after{content:'';position:absolute;width:14px;height:14px;background:var(--muted);border-radius:50%;top:2px;left:2px;transition:all 0.2s;}
+.toggle.on::after{background:var(--green);left:18px;}
+.toggle-label{font-size:12px;color:var(--muted);}
+
+/* ===== MODAL ===== */
+.cv-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;align-items:center;justify-content:center;}
+.cv-modal-bg.open{display:flex;}
+.cv-modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;width:90%;max-width:520px;position:relative;max-height:85vh;overflow-y:auto;}
+.cv-modal h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:20px;}
+.cv-modal-close{position:absolute;top:14px;right:14px;background:var(--bg3);border:1px solid var(--border);color:var(--white);width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+/* ===== SETTINGS ===== */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.setting-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;justify-content:space-between;align-items:center;}
+.setting-info h5{font-size:13px;font-weight:600;margin-bottom:3px;}
+.setting-info p{font-size:11px;color:var(--muted);}
+
+/* TOAST */
+.cv-toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid rgba(245,166,35,0.3);color:var(--white);padding:12px 18px;border-radius:10px;font-size:13px;z-index:9999;transform:translateY(80px);opacity:0;transition:all 0.3s;}
+.cv-toast.show{transform:translateY(0);opacity:1;}
+.cv-toast.success{border-color:rgba(46,204,113,0.3);}
+.cv-toast.error{border-color:rgba(231,76,60,0.3);}
+
+/* BADGE */
+.count-badge{display:inline-flex;align-items:center;justify-content:center;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.2);color:var(--accent);font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;}
+
+/* PRODUCT IMG PREVIEW */
+.img-preview{width:40px;height:40px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.img-preview svg{width:20px;height:20px;opacity:0.6;}
+</style>
+</head>
+<body>
+
+<!-- ===== ADMIN LOGIN ===== -->
+<div id="adminLogin">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon"><svg viewBox="0 0 22 22" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round"><path d="M11 2L18 5.5L18 11C18 15 11 18 11 18C11 18 4 15 4 11L4 5.5Z"/><path d="M8 11L10 13L14 9"/></svg></div>
+      <div class="login-logo-text">Cyber<span>Vault</span></div>
+    </div>
+    <h2>Admin Panel</h2>
+    <p>Sign in with your admin credentials</p>
+    <div class="login-error" id="loginErr"></div>
+    <div class="form-group"><label>Admin Username</label><input type="text" id="adminUser" placeholder="admin" value="admin"/></div>
+    <div class="form-group"><label>Password</label><input type="password" id="adminPass" placeholder="admin123" value="admin123" onkeydown="if(event.key==='Enter')doAdminLogin()"/></div>
+    <button class="login-btn" onclick="doAdminLogin()">Sign In to Admin Panel</button>
+    <p class="login-note">Default: admin / admin123 (Change in Settings)</p>
+  </div>
+</div>
+
+<!-- ===== ADMIN PANEL ===== -->
+<div id="adminPanel">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon"><svg viewBox="0 0 22 22" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round"><path d="M11 2L18 5.5L18 11C18 15 11 18 11 18C11 18 4 15 4 11L4 5.5Z"/><path d="M8 11L10 13L14 9"/></svg></div>
+      <div class="sidebar-logo-text">Cyber<span>Vault</span></div>
+    </div>
+    <div class="sidebar-tag">Main</div>
+    <ul class="sidebar-menu">
+      <li class="active" onclick="switchSection(this,'dashboard')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>Dashboard</li>
+      <li onclick="switchSection(this,'orders')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6M5 5h6M5 11h4"/></svg>Orders<span class="sidebar-badge" id="orderBadge">8</span></li>
+      <li onclick="switchSection(this,'products')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="6" width="14" height="9" rx="1"/><path d="M5 6V4a3 3 0 0 1 6 0v2"/></svg>Products</li>
+      <li onclick="switchSection(this,'customers')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="5" r="3"/><path d="M1 14a5 5 0 0 1 10 0"/><path d="M13 7a2 2 0 0 1 0 4"/><path d="M15 14a3 3 0 0 0-3-3"/></svg>Customers</li>
+      <div class="sidebar-tag">Store</div>
+      <li onclick="switchSection(this,'inventory')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1L1 5v6l7 4 7-4V5L8 1z"/><path d="M1 5l7 4 7-4"/><path d="M8 9v6"/></svg>Inventory</li>
+      <li onclick="switchSection(this,'coupons')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="5" width="14" height="8" rx="1"/><path d="M5 9h1M8 9h1M11 9h1"/><path d="M1 9h14"/></svg>Coupons</li>
+      <li onclick="switchSection(this,'banners')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M1 7h14"/></svg>Banners</li>
+      <div class="sidebar-tag">Analytics</div>
+      <li onclick="switchSection(this,'analytics')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12L6 8l3 3 5-6"/></svg>Analytics</li>
+      <li onclick="switchSection(this,'reviews')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="8,1 10,5.5 15,5.5 11,9 12.5,14 8,11 3.5,14 5,9 1,5.5 6,5.5"/></svg>Reviews</li>
+      <div class="sidebar-tag">System</div>
+      <li onclick="switchSection(this,'settings')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>Settings</li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="admin-info">
+        <div class="admin-avatar">A</div>
+        <div><div class="admin-name">Admin</div><div class="admin-role">Super Admin</div></div>
+      </div>
+      <button class="logout-btn" onclick="adminLogout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div id="section-dashboard" class="admin-section active">
+      <div class="top-bar">
+        <h1>Dashboard</h1>
+        <div class="top-bar-actions">
+          <div class="top-bar-badge"><div class="live-dot"></div>Live</div>
+          <button class="export-btn" onclick="showToast('Report exported!','success')">Export Report</button>
+          <a href="cybervault.html" target="_blank" style="text-decoration:none;"><button class="add-btn">View Store ↗</button></a>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card gold"><div class="stat-label"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="14" height="10" rx="1"/><path d="M1 8h14"/><path d="M5 2l-2 2M11 2l2 2"/></svg>Total Revenue</div><div class="stat-value" id="statRevenue">₹0</div><div class="stat-change up">↑ 24.5% this month</div></div>
+        <div class="stat-card green"><div class="stat-label"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6"/></svg>Total Orders</div><div class="stat-value" id="statOrders">0</div><div class="stat-change up">↑ 18.2% this month</div></div>
+        <div class="stat-card blue"><div class="stat-label"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="5" r="3"/><path d="M1 14a5 5 0 0 1 10 0"/></svg>Customers</div><div class="stat-value" id="statCustomers">0</div><div class="stat-change up">↑ 31.7% this month</div></div>
+        <div class="stat-card red"><div class="stat-label"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="6" width="14" height="9" rx="1"/><path d="M5 6V4a3 3 0 0 1 6 0v2"/></svg>Products Active</div><div class="stat-value" id="statProducts">0</div><div class="stat-change up">↑ 5 added this week</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+        <div class="section-card">
+          <h3>📈 Revenue This Week</h3>
+          <div class="mini-chart" id="revenueChart"></div>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;" id="chartLabels"></div>
+        </div>
+        <div class="section-card">
+          <h3>📊 Sales by Category</h3>
+          <div id="catBreakdown" style="margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h3>🕐 Recent Orders</h3>
+        <table class="cv-table" id="recentOrders"></table>
+      </div>
+    </div>
+
+    <!-- ===== ORDERS ===== -->
+    <div id="section-orders" class="admin-section">
+      <div class="top-bar"><h1>Orders Management</h1>
+        <button class="export-btn" onclick="exportOrders()">Export CSV</button>
+      </div>
+      <div class="section-card">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input type="text" class="search-box" placeholder="Search by order ID or customer..." oninput="filterOrders(this.value)"/>
+            <select class="filter-select" onchange="filterOrderStatus(this.value)">
+              <option value="all">All Status</option>
+              <option value="processing">Processing</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+        <table class="cv-table" id="ordersTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== PRODUCTS ===== -->
+    <div id="section-products" class="admin-section">
+      <div class="top-bar"><h1>Products Management</h1>
+        <button class="add-btn" onclick="openProductModal()">+ Add Product</button>
+      </div>
+      <div class="section-card">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input type="text" class="search-box" placeholder="Search products..." oninput="filterProducts(this.value)"/>
+            <select class="filter-select" onchange="filterProductCat(this.value)">
+              <option value="all">All Categories</option>
+              <option value="phone">Smartphones</option>
+              <option value="laptop">Laptops</option>
+              <option value="audio">Audio</option>
+              <option value="camera">Cameras</option>
+              <option value="wearable">Wearables</option>
+            </select>
+          </div>
+          <button class="export-btn" onclick="showToast('Products exported!','success')">Export</button>
+        </div>
+        <table class="cv-table" id="productsTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== CUSTOMERS ===== -->
+    <div id="section-customers" class="admin-section">
+      <div class="top-bar"><h1>Customer Management</h1></div>
+      <div class="section-card">
+        <div class="toolbar">
+          <input type="text" class="search-box" placeholder="Search customers..." oninput="filterCustomers(this.value)"/>
+          <button class="export-btn" onclick="showToast('Customers exported!','success')">Export CSV</button>
+        </div>
+        <table class="cv-table" id="customersTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== INVENTORY ===== -->
+    <div id="section-inventory" class="admin-section">
+      <div class="top-bar"><h1>Inventory Management</h1></div>
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card green"><div class="stat-label">In Stock</div><div class="stat-value">8</div></div>
+        <div class="stat-card gold"><div class="stat-label">Low Stock</div><div class="stat-value">3</div></div>
+        <div class="stat-card red"><div class="stat-label">Out of Stock</div><div class="stat-value">1</div></div>
+      </div>
+      <div class="section-card">
+        <h3>Stock Levels</h3>
+        <table class="cv-table" id="inventoryTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== COUPONS ===== -->
+    <div id="section-coupons" class="admin-section">
+      <div class="top-bar"><h1>Coupon Management</h1>
+        <button class="add-btn" onclick="openCouponModal()">+ Create Coupon</button>
+      </div>
+      <div class="section-card">
+        <table class="cv-table" id="couponsTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== BANNERS ===== -->
+    <div id="section-banners" class="admin-section">
+      <div class="top-bar"><h1>Banner Management</h1>
+        <button class="add-btn" onclick="showToast('Banner editor coming soon!','success')">+ Add Banner</button>
+      </div>
+      <div class="section-card">
+        <h3>Active Banners</h3>
+        <div id="bannersList"></div>
+      </div>
+    </div>
+
+    <!-- ===== ANALYTICS ===== -->
+    <div id="section-analytics" class="admin-section">
+      <div class="top-bar"><h1>Analytics & Reports</h1></div>
+      <div class="stats-grid">
+        <div class="stat-card gold"><div class="stat-label">Avg Order Value</div><div class="stat-value">₹12,450</div><div class="stat-change up">↑ 8.2%</div></div>
+        <div class="stat-card green"><div class="stat-label">Conversion Rate</div><div class="stat-value">3.8%</div><div class="stat-change up">↑ 0.4%</div></div>
+        <div class="stat-card blue"><div class="stat-label">Return Rate</div><div class="stat-value">2.1%</div><div class="stat-change down">↓ 0.3%</div></div>
+      </div>
+      <div class="section-card">
+        <h3>📅 Monthly Revenue Trend</h3>
+        <div class="mini-chart" id="monthlyChart"></div>
+      </div>
+      <div class="section-card">
+        <h3>🔥 Top Selling Products</h3>
+        <table class="cv-table" id="topProducts"></table>
+      </div>
+    </div>
+
+    <!-- ===== REVIEWS ===== -->
+    <div id="section-reviews" class="admin-section">
+      <div class="top-bar"><h1>Reviews Management</h1></div>
+      <div class="section-card">
+        <table class="cv-table" id="reviewsTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== SETTINGS ===== -->
+    <div id="section-settings" class="admin-section">
+      <div class="top-bar"><h1>Settings</h1></div>
+      <div class="section-card">
+        <h3>Store Information</h3>
+        <div class="admin-form">
+          <div class="form-field"><label>Store Name</label><input type="text" value="CyberVault" id="storeName"/></div>
+          <div class="form-field"><label>Store Email</label><input type="email" value="support@cybervault.in" id="storeEmail"/></div>
+          <div class="form-field"><label>Phone Number</label><input type="tel" value="+91 9876543210" id="storePhone"/></div>
+          <div class="form-field"><label>GST Number</label><input type="text" value="29ABCDE1234F1Z5" id="storeGST"/></div>
+          <div class="form-field full"><label>Store Address</label><input type="text" value="CyberVault Technologies, Sector 14, Hisar, Haryana - 125001" id="storeAddress"/></div>
+          <div class="form-field"><label>Free Delivery Above (₹)</label><input type="number" value="999" id="freeDelivery"/></div>
+          <div class="form-field"><label>Delivery Charge (₹)</label><input type="number" value="99" id="deliveryCharge"/></div>
+        </div>
+        <button class="submit-btn" style="margin-top:16px;" onclick="saveSettings()">Save Store Settings</button>
+      </div>
+      <div class="section-card">
+        <h3>Admin Credentials</h3>
+        <div class="admin-form">
+          <div class="form-field"><label>Admin Username</label><input type="text" id="newAdminUser" placeholder="New username"/></div>
+          <div class="form-field"><label>New Password</label><input type="password" id="newAdminPass" placeholder="New password"/></div>
+        </div>
+        <button class="submit-btn" style="margin-top:16px;" onclick="updateAdminCreds()">Update Credentials</button>
+      </div>
+      <div class="section-card">
+        <h3>Feature Toggles</h3>
+        <div class="settings-grid">
+          <div class="setting-item"><div class="setting-info"><h5>Maintenance Mode</h5><p>Show maintenance page to users</p></div><div class="toggle" onclick="this.classList.toggle('on');showToast('Setting updated','success')"></div></div>
+          <div class="setting-item"><div class="setting-info"><h5>New Registrations</h5><p>Allow new user signups</p></div><div class="toggle on" onclick="this.classList.toggle('on');showToast('Setting updated','success')"></div></div>
+          <div class="setting-item"><div class="setting-info"><h5>Cash on Delivery</h5><p>Enable COD payment option</p></div><div class="toggle on" onclick="this.classList.toggle('on');showToast('Setting updated','success')"></div></div>
+          <div class="setting-item"><div class="setting-info"><h5>Email Notifications</h5><p>Send order emails to customers</p></div><div class="toggle on" onclick="this.classList.toggle('on');showToast('Setting updated','success')"></div></div>
+          <div class="setting-item"><div class="setting-info"><h5>Product Reviews</h5><p>Allow customers to leave reviews</p></div><div class="toggle on" onclick="this.classList.toggle('on');showToast('Setting updated','success')"></div></div>
+          <div class="setting-item"><div class="setting-info"><h5>Splash Screen</h5><p>Show intro animation on store</p></div><div class="toggle on" onclick="this.classList.toggle('on');showToast('Setting updated','success')"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PRODUCT MODAL -->
+<div class="cv-modal-bg" id="productModal">
+  <div class="cv-modal">
+    <button class="cv-modal-close" onclick="closeModal('productModal')">✕</button>
+    <h2 id="productModalTitle">Add New Product</h2>
+    <div class="admin-form">
+      <div class="form-field full"><label>Product Name</label><input type="text" id="pmName" placeholder="e.g. Galaxy S25 Ultra"/></div>
+      <div class="form-field"><label>Brand</label><input type="text" id="pmBrand" placeholder="e.g. Samsung"/></div>
+      <div class="form-field"><label>Category</label>
+        <select id="pmCat"><option value="phone">Smartphone</option><option value="laptop">Laptop</option><option value="audio">Audio</option><option value="camera">Camera</option><option value="wearable">Wearable</option><option value="accessory">Accessory</option></select>
+      </div>
+      <div class="form-field"><label>Selling Price (₹)</label><input type="number" id="pmPrice" placeholder="45999"/></div>
+      <div class="form-field"><label>Original MRP (₹)</label><input type="number" id="pmOld" placeholder="62999"/></div>
+      <div class="form-field"><label>Stock Quantity</label><input type="number" id="pmStock" placeholder="100"/></div>
+      <div class="form-field"><label>Tag</label>
+        <select id="pmTag"><option value="hot">Hot</option><option value="new">New</option><option value="sale">Sale</option></select>
+      </div>
+      <div class="form-field"><label>Rating</label><input type="number" id="pmRating" placeholder="4.5" min="1" max="5" step="0.1"/></div>
+      <div class="form-field full"><label>Description</label><textarea id="pmDesc" placeholder="Product description..."></textarea></div>
+    </div>
+    <button class="submit-btn" onclick="saveProduct()" style="margin-top:16px;width:100%;">Save Product</button>
+  </div>
+</div>
+
+<!-- COUPON MODAL -->
+<div class="cv-modal-bg" id="couponModal">
+  <div class="cv-modal">
+    <button class="cv-modal-close" onclick="closeModal('couponModal')">✕</button>
+    <h2>Create Coupon</h2>
+    <div class="admin-form">
+      <div class="form-field"><label>Coupon Code</label><input type="text" id="cpCode" placeholder="e.g. SAVE20" style="text-transform:uppercase;"/></div>
+      <div class="form-field"><label>Discount Type</label><select id="cpType"><option>Percentage</option><option>Flat Amount</option></select></div>
+      <div class="form-field"><label>Discount Value</label><input type="number" id="cpValue" placeholder="20"/></div>
+      <div class="form-field"><label>Min Order Value (₹)</label><input type="number" id="cpMin" placeholder="500"/></div>
+      <div class="form-field"><label>Max Uses</label><input type="number" id="cpMax" placeholder="100"/></div>
+      <div class="form-field"><label>Expiry Date</label><input type="date" id="cpExpiry"/></div>
+    </div>
+    <button class="submit-btn" onclick="saveCoupon()" style="margin-top:16px;width:100%;">Create Coupon</button>
+  </div>
+</div>
+
+<div class="cv-toast" id="toast"></div>
+
+<script>
+// ===== DATA =====
+let adminCreds = {user:'admin', pass:'admin123'};
+let adminProducts = [
+  {id:1,name:'Galaxy Pro 15',brand:'Samsung',cat:'phone',price:45999,old:62999,stock:23,tag:'hot',rating:4.5,status:'active'},
+  {id:2,name:'UltraBook X1',brand:'LG',cat:'laptop',price:72499,old:89999,stock:8,tag:'new',rating:4.3,status:'active'},
+  {id:3,name:'NoisePro ANC',brand:'Sony',cat:'audio',price:8999,old:14999,stock:45,tag:'sale',rating:4.7,status:'active'},
+  {id:4,name:'ProShot 4K',brand:'Canon',cat:'camera',price:54999,old:68000,stock:5,tag:'new',rating:4.4,status:'active'},
+  {id:5,name:'SmartWatch Ultra',brand:'Apple',cat:'wearable',price:34999,old:44999,stock:12,tag:'hot',rating:4.6,status:'active'},
+  {id:6,name:'TurboBook Air',brand:'HP',cat:'laptop',price:58999,old:74999,stock:0,tag:'sale',rating:4.2,status:'inactive'},
+  {id:7,name:'Buds X TWS',brand:'boAt',cat:'audio',price:2499,old:3999,stock:120,tag:'hot',rating:4.4,status:'active'},
+  {id:8,name:'FitBand 360',brand:'Xiaomi',cat:'wearable',price:4499,old:6999,stock:3,tag:'sale',rating:4.3,status:'active'},
+  {id:9,name:'iPhone 16 Pro',brand:'Apple',cat:'phone',price:134999,old:149999,stock:15,tag:'hot',rating:4.8,status:'active'},
+  {id:10,name:'BassMax Speaker',brand:'JBL',cat:'audio',price:5499,old:7999,stock:34,tag:'hot',rating:4.5,status:'active'},
+];
+
+let adminOrders = [
+  {id:'CV-2024-8821',customer:'Rahul Sharma',email:'rahul@gmail.com',items:2,total:54998,status:'delivered',date:'2024-12-10',city:'Delhi'},
+  {id:'CV-2024-9103',customer:'Priya Singh',email:'priya@yahoo.com',items:1,total:8999,status:'shipped',date:'2025-01-05',city:'Mumbai'},
+  {id:'CV-2025-0021',customer:'Amit Kumar',email:'amit@outlook.com',items:3,total:47997,status:'processing',date:'2025-01-10',city:'Hisar'},
+  {id:'CV-2025-0045',customer:'Neha Patel',email:'neha@gmail.com',items:1,total:134999,status:'processing',date:'2025-01-12',city:'Ahmedabad'},
+  {id:'CV-2025-0067',customer:'Rajesh Verma',email:'rajesh@gmail.com',items:2,total:12998,status:'shipped',date:'2025-01-14',city:'Jaipur'},
+  {id:'CV-2025-0089',customer:'Sunita Devi',email:'sunita@gmail.com',items:1,total:45999,status:'delivered',date:'2025-01-15',city:'Lucknow'},
+  {id:'CV-2025-0112',customer:'Vikram Rao',email:'vikram@gmail.com',items:4,total:28996,status:'processing',date:'2025-01-16',city:'Bengaluru'},
+  {id:'CV-2025-0134',customer:'Kavya Nair',email:'kavya@gmail.com',items:1,total:72499,status:'cancelled',date:'2025-01-17',city:'Chennai'},
+];
+
+let adminCoupons = [
+  {code:'VAULT20',type:'Percentage',value:20,min:500,uses:34,max:100,expiry:'2025-03-31',status:'active'},
+  {code:'NEWUSER50',type:'Flat Amount',value:50,min:299,uses:12,max:500,expiry:'2025-02-28',status:'active'},
+  {code:'SAVE500',type:'Flat Amount',value:500,min:2000,uses:8,max:50,expiry:'2025-01-31',status:'expired'},
+];
+
+let adminReviews = [
+  {product:'Galaxy Pro 15',customer:'Rahul S.',rating:5,review:'Amazing phone! Battery life is exceptional.',status:'approved',date:'Jan 10'},
+  {product:'NoisePro ANC',customer:'Priya M.',rating:4,review:'Great sound quality. Delivery was fast.',status:'approved',date:'Jan 11'},
+  {product:'iPhone 16 Pro',customer:'Amit K.',rating:5,review:'Best phone I have ever used!',status:'pending',date:'Jan 12'},
+  {product:'Buds X TWS',customer:'Neha P.',rating:3,review:'Good value for money but bass could be better.',status:'pending',date:'Jan 13'},
+];
+
+const ICONS = {
+  phone:`<svg viewBox="0 0 40 40" fill="none" stroke="#f5a623" stroke-width="1.5"><rect x="10" y="4" width="20" height="32" rx="4"/><circle cx="20" cy="32" r="1.5" fill="#f5a623"/></svg>`,
+  laptop:`<svg viewBox="0 0 40 40" fill="none" stroke="#f5a623" stroke-width="1.5"><rect x="5" y="8" width="30" height="20" rx="2"/><path d="M2 30h36l-3-2H5z"/></svg>`,
+  audio:`<svg viewBox="0 0 40 40" fill="none" stroke="#f5a623" stroke-width="1.5"><path d="M20 6a14 14 0 0 1 14 14"/><path d="M20 6A14 14 0 0 0 6 20"/><rect x="2" y="17" width="6" height="10" rx="2"/><rect x="32" y="17" width="6" height="10" rx="2"/></svg>`,
+  camera:`<svg viewBox="0 0 40 40" fill="none" stroke="#f5a623" stroke-width="1.5"><rect x="4" y="12" width="32" height="22" rx="3"/><circle cx="20" cy="23" r="7"/><circle cx="20" cy="23" r="4"/></svg>`,
+  wearable:`<svg viewBox="0 0 40 40" fill="none" stroke="#f5a623" stroke-width="1.5"><rect x="12" y="10" width="16" height="20" rx="4"/><line x1="16" y1="6" x2="24" y2="6"/><line x1="16" y1="34" x2="24" y2="34"/></svg>`,
+  accessory:`<svg viewBox="0 0 40 40" fill="none" stroke="#f5a623" stroke-width="1.5"><circle cx="20" cy="20" r="12"/><path d="M20 8v12l6 4"/></svg>`,
+};
+
+// ===== LOGIN =====
+function doAdminLogin(){
+  const user=document.getElementById('adminUser').value.trim();
+  const pass=document.getElementById('adminPass').value;
+  const saved=JSON.parse(localStorage.getItem('cv_admin_creds')||'null');
+  const checkCreds=saved||adminCreds;
+  const errEl=document.getElementById('loginErr');
+  if(user===checkCreds.user&&pass===checkCreds.pass){
+    errEl.style.display='none';
+    document.getElementById('adminLogin').style.display='none';
+    document.getElementById('adminPanel').classList.add('visible');
+    initDashboard();
+    showToast('Welcome back, Admin! 👋','success');
+  } else {
+    errEl.style.display='block';
+    errEl.textContent='Invalid credentials. Try admin / admin123';
+  }
+}
+
+function adminLogout(){
+  document.getElementById('adminPanel').classList.remove('visible');
+  document.getElementById('adminLogin').style.display='flex';
+  document.getElementById('adminPass').value='';
+}
+
+// ===== DASHBOARD =====
+function initDashboard(){
+  // Stats
+  const totalRev=adminOrders.reduce((a,b)=>b.status!=='cancelled'?a+b.total:a,0);
+  const users=JSON.parse(localStorage.getItem('cv_users')||'[]');
+  document.getElementById('statRevenue').textContent='₹'+totalRev.toLocaleString();
+  document.getElementById('statOrders').textContent=adminOrders.length;
+  document.getElementById('statCustomers').textContent=Math.max(users.length,adminOrders.length);
+  document.getElementById('statProducts').textContent=adminProducts.filter(p=>p.status==='active').length;
+  document.getElementById('orderBadge').textContent=adminOrders.filter(o=>o.status==='processing').length;
+
+  // Revenue chart
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const vals=[12400,18200,9800,24600,31200,28900,22100];
+  const max=Math.max(...vals);
+  document.getElementById('revenueChart').innerHTML=vals.map((v,i)=>`
+    <div class="chart-bar" style="height:${(v/max*100)}%">
+      <div class="bar-tip">₹${v.toLocaleString()}</div>
+    </div>`).join('');
+  document.getElementById('chartLabels').innerHTML=days.map(d=>`<span style="flex:1;text-align:center;font-size:10px;color:var(--muted);">${d}</span>`).join('');
+
+  // Category breakdown
+  const cats={phone:0,laptop:0,audio:0,camera:0,wearable:0};
+  adminOrders.forEach(o=>o.items>0&&(cats.phone+=o.total));
+  const catData=[{n:'Smartphones',v:42,c:'#f5a623'},{n:'Laptops',v:28,c:'#3498db'},{n:'Audio',v:15,c:'#2ecc71'},{n:'Cameras',v:10,c:'#e74c3c'},{n:'Wearables',v:5,c:'#9b59b6'}];
+  document.getElementById('catBreakdown').innerHTML=catData.map(c=>`
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:12px;">${c.n}</span>
+        <span style="font-size:12px;font-weight:600;color:${c.c}">${c.v}%</span>
+      </div>
+      <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${c.v}%;background:${c.c};border-radius:3px;transition:width 0.8s;"></div>
+      </div>
+    </div>`).join('');
+
+  // Recent orders table
+  document.getElementById('recentOrders').innerHTML=`
+    <thead><tr><th>Order ID</th><th>Customer</th><th>Amount</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+    <tbody>${adminOrders.slice(0,5).map(o=>`
+      <tr><td style="font-weight:600;color:var(--accent);">${o.id}</td>
+      <td>${o.customer}</td>
+      <td style="color:#2ecc71;font-weight:600;">₹${o.total.toLocaleString()}</td>
+      <td><span class="status-pill ${o.status}">${o.status}</span></td>
+      <td>${o.date}</td>
+      <td><div class="action-btns"><button class="act-btn" onclick="updateOrderStatus('${o.id}')">Update</button></div></td>
+      </tr>`).join('')}</tbody>`;
+
+  renderOrders(adminOrders);
+  renderProducts(adminProducts);
+  renderCustomers();
+  renderInventory();
+  renderCoupons();
+  renderBanners();
+  renderReviews();
+  renderTopProducts();
+  renderMonthlyChart();
+}
+
+// ===== ORDERS =====
+function renderOrders(list){
+  document.getElementById('ordersTable').innerHTML=`
+    <thead><tr><th>Order ID</th><th>Customer</th><th>City</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+    <tbody>${list.map(o=>`
+      <tr><td style="font-weight:600;color:var(--accent);">${o.id}</td>
+      <td><div style="font-weight:500;">${o.customer}</div><div style="font-size:11px;color:var(--muted);">${o.email}</div></td>
+      <td>${o.city}</td>
+      <td><span class="count-badge">${o.items}</span></td>
+      <td style="color:#2ecc71;font-weight:600;">₹${o.total.toLocaleString()}</td>
+      <td><select style="background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:'Outfit',sans-serif;font-size:11px;padding:4px 8px;border-radius:6px;outline:none;" onchange="changeOrderStatus('${o.id}',this.value)">
+        <option ${o.status==='processing'?'selected':''} value="processing">Processing</option>
+        <option ${o.status==='shipped'?'selected':''} value="shipped">Shipped</option>
+        <option ${o.status==='delivered'?'selected':''} value="delivered">Delivered</option>
+        <option ${o.status==='cancelled'?'selected':''} value="cancelled">Cancelled</option>
+      </select></td>
+      <td style="font-size:12px;color:var(--muted);">${o.date}</td>
+      <td><div class="action-btns"><button class="act-btn del" onclick="deleteOrder('${o.id}')">Delete</button></div></td>
+      </tr>`).join('')}</tbody>`;
+}
+
+function changeOrderStatus(id, status){
+  const o=adminOrders.find(x=>x.id===id);
+  if(o){o.status=status; showToast('Order status updated!','success');}
+}
+function deleteOrder(id){
+  adminOrders=adminOrders.filter(o=>o.id!==id);
+  renderOrders(adminOrders); showToast('Order deleted'); initDashboard();
+}
+function filterOrders(q){renderOrders(adminOrders.filter(o=>o.id.toLowerCase().includes(q.toLowerCase())||o.customer.toLowerCase().includes(q.toLowerCase())));}
+function filterOrderStatus(s){renderOrders(s==='all'?adminOrders:adminOrders.filter(o=>o.status===s));}
+function updateOrderStatus(id){
+  const o=adminOrders.find(x=>x.id===id);
+  if(o&&o.status==='processing'){o.status='shipped';showToast('Order marked as Shipped!','success');renderOrders(adminOrders);}
+}
+function exportOrders(){
+  const csv='Order ID,Customer,Total,Status,Date\n'+adminOrders.map(o=>`${o.id},${o.customer},${o.total},${o.status},${o.date}`).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='cybervault_orders.csv';a.click();
+  showToast('Orders exported!','success');
+}
+
+// ===== PRODUCTS =====
+function renderProducts(list){
+  document.getElementById('productsTable').innerHTML=`
+    <thead><tr><th>Product</th><th>Category</th><th>Price</th><th>MRP</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${list.map(p=>`
+      <tr>
+      <td><div style="display:flex;align-items:center;gap:10px;">
+        <div class="img-preview">${ICONS[p.cat]||ICONS.accessory}</div>
+        <div><div style="font-weight:600;">${p.name}</div><div style="font-size:11px;color:var(--muted);">${p.brand}</div></div>
+      </div></td>
+      <td style="text-transform:capitalize;">${p.cat}</td>
+      <td style="color:var(--accent);font-weight:600;">₹${p.price.toLocaleString()}</td>
+      <td style="color:var(--muted);text-decoration:line-through;font-size:12px;">₹${p.old.toLocaleString()}</td>
+      <td><span style="color:${p.stock===0?'#e74c3c':p.stock<10?'#f5a623':'#2ecc71'};font-weight:600;">${p.stock===0?'Out of Stock':p.stock}</span></td>
+      <td><span class="status-pill ${p.status}">${p.status}</span></td>
+      <td><div class="action-btns">
+        <button class="act-btn" onclick="toggleProductStatus(${p.id})">${p.status==='active'?'Disable':'Enable'}</button>
+        <button class="act-btn" onclick="editProduct(${p.id})">Edit</button>
+        <button class="act-btn del" onclick="deleteProduct(${p.id})">Delete</button>
+      </div></td></tr>`).join('')}</tbody>`;
+}
+
+let editingProductId = null;
+function openProductModal(){
+  editingProductId=null;
+  document.getElementById('productModalTitle').textContent='Add New Product';
+  ['pmName','pmBrand','pmPrice','pmOld','pmStock','pmRating','pmDesc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('productModal').classList.add('open');
+}
+function editProduct(id){
+  const p=adminProducts.find(x=>x.id===id);
+  editingProductId=id;
+  document.getElementById('productModalTitle').textContent='Edit Product';
+  document.getElementById('pmName').value=p.name;
+  document.getElementById('pmBrand').value=p.brand;
+  document.getElementById('pmCat').value=p.cat;
+  document.getElementById('pmPrice').value=p.price;
+  document.getElementById('pmOld').value=p.old;
+  document.getElementById('pmStock').value=p.stock;
+  document.getElementById('pmTag').value=p.tag;
+  document.getElementById('pmRating').value=p.rating;
+  document.getElementById('productModal').classList.add('open');
+}
+function saveProduct(){
+
+alert("SAVE CLICKED");
+
+  const name=document.getElementById('pmName').value.trim();
+  const brand=document.getElementById('pmBrand').value.trim();
+  if(!name||!brand){showToast('Name and brand required','error');return;}
+  const prod={
+    id:editingProductId||Date.now(),
+    name,brand,
+    cat:document.getElementById('pmCat').value,
+    price:parseInt(document.getElementById('pmPrice').value)||0,
+    old:parseInt(document.getElementById('pmOld').value)||0,
+    stock:parseInt(document.getElementById('pmStock').value)||0,
+    tag:document.getElementById('pmTag').value,
+    rating:parseFloat(document.getElementById('pmRating').value)||4.0,
+    status:'active'
+  };
+  if(editingProductId){
+    const idx=adminProducts.findIndex(x=>x.id===editingProductId);
+    if(idx>-1) adminProducts[idx]=prod;
+    showToast('Product updated!','success');
+  } else {
+    adminProducts.unshift(prod);
+    showToast('Product added!','success');
+  }
+  closeModal('productModal');
+  renderProducts(adminProducts);
+  document.getElementById('statProducts').textContent=adminProducts.filter(p=>p.status==='active').length;
+alert("Saving to Firebase...");
+
+db.collection("products").add({
+  name: prod.name,
+  brand: prod.brand,
+  price: prod.price
+}).then(()=>{
+  alert("Saved ✅");
+}).catch((e)=>{
+  alert("Error ❌ " + e.message);
+});}
+// 🔥 FIREBASE SAVE
+db.collection("products").add({
+  name: prod.name,
+  brand: prod.brand,
+  cat: prod.cat,
+  price: prod.price,
+  old: prod.old,
+  stock: prod.stock,
+  tag: prod.tag,
+  rating: prod.rating
+});
+function toggleProductStatus(id){
+  const p=adminProducts.find(x=>x.id===id);
+  if(p){p.status=p.status==='active'?'inactive':'active';renderProducts(adminProducts);showToast('Product status updated!','success');}
+}
+function deleteProduct(id){
+  adminProducts=adminProducts.filter(p=>p.id!==id);
+  renderProducts(adminProducts); showToast('Product deleted');
+}
+function filterProducts(q){renderProducts(adminProducts.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())||p.brand.toLowerCase().includes(q.toLowerCase())));}
+function filterProductCat(cat){renderProducts(cat==='all'?adminProducts:adminProducts.filter(p=>p.cat===cat));}
+
+// ===== CUSTOMERS =====
+function renderCustomers(){
+  const users=JSON.parse(localStorage.getItem('cv_users')||'[]');
+  const merged=[...users.map(u=>({name:u.first+' '+u.last,email:u.email,phone:u.phone||'—',orders:Math.floor(Math.random()*5),joined:'Jan 2025',status:'active'}))];
+  if(!merged.length) merged.push({name:'Rahul Sharma',email:'rahul@gmail.com',phone:'9876543210',orders:3,joined:'Dec 2024',status:'active'},{name:'Priya Singh',email:'priya@yahoo.com',phone:'9812345678',orders:1,joined:'Jan 2025',status:'active'});
+  document.getElementById('customersTable').innerHTML=`
+    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Orders</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${merged.map(u=>`
+      <tr><td style="font-weight:500;">${u.name}</td>
+      <td style="color:var(--muted);font-size:12px;">${u.email}</td>
+      <td style="font-size:12px;">${u.phone}</td>
+      <td><span class="count-badge">${u.orders}</span></td>
+      <td style="font-size:12px;color:var(--muted);">${u.joined}</td>
+      <td><span class="status-pill ${u.status}">${u.status}</span></td>
+      <td><button class="act-btn del" onclick="showToast('Customer blocked','success')">Block</button></td></tr>`).join('')}</tbody>`;
+}
+function filterCustomers(q){renderCustomers();}
+
+// ===== INVENTORY =====
+function renderInventory(){
+  document.getElementById('inventoryTable').innerHTML=`
+    <thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Status</th><th>Update Stock</th></tr></thead>
+    <tbody>${adminProducts.map(p=>`
+      <tr><td style="font-weight:500;">${p.name}</td>
+      <td style="text-transform:capitalize;">${p.cat}</td>
+      <td style="font-weight:700;color:${p.stock===0?'#e74c3c':p.stock<10?'#f5a623':'#2ecc71'};">${p.stock}</td>
+      <td><span class="status-pill ${p.stock===0?'cancelled':p.stock<10?'processing':'delivered'}">${p.stock===0?'Out of Stock':p.stock<10?'Low Stock':'In Stock'}</span></td>
+      <td><div style="display:flex;gap:6px;align-items:center;">
+        <input type="number" value="${p.stock}" min="0" id="stock_${p.id}" style="width:70px;background:var(--bg3);border:1px solid var(--border);color:var(--white);padding:5px 8px;border-radius:6px;outline:none;font-family:'Outfit',sans-serif;font-size:12px;"/>
+        <button class="act-btn" onclick="updateStock(${p.id})">Update</button>
+      </div></td></tr>`).join('')}</tbody>`;
+}
+function updateStock(id){
+  const val=parseInt(document.getElementById('stock_'+id).value)||0;
+  const p=adminProducts.find(x=>x.id===id);
+  if(p){p.stock=val;showToast('Stock updated!','success');renderInventory();}
+}
+
+// ===== COUPONS =====
+function renderCoupons(){
+  document.getElementById('couponsTable').innerHTML=`
+    <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min Order</th><th>Used/Max</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${adminCoupons.map(c=>`
+      <tr><td style="font-family:monospace;font-weight:700;color:var(--accent);font-size:14px;">${c.code}</td>
+      <td style="font-size:12px;">${c.type}</td>
+      <td style="font-weight:600;">${c.type==='Percentage'?c.value+'%':'₹'+c.value}</td>
+      <td>₹${c.min}</td>
+      <td>${c.uses}/${c.max}</td>
+      <td style="font-size:12px;color:var(--muted);">${c.expiry}</td>
+      <td><span class="status-pill ${c.status==='active'?'active':'cancelled'}">${c.status}</span></td>
+      <td><div class="action-btns">
+        <button class="act-btn" onclick="toggleCoupon('${c.code}')">${c.status==='active'?'Disable':'Enable'}</button>
+        <button class="act-btn del" onclick="deleteCoupon('${c.code}')">Delete</button>
+      </div></td></tr>`).join('')}</tbody>`;
+}
+function openCouponModal(){document.getElementById('couponModal').classList.add('open');}
+function saveCoupon(){
+  const code=document.getElementById('cpCode').value.trim().toUpperCase();
+  if(!code){showToast('Enter coupon code','error');return;}
+  adminCoupons.unshift({code,type:document.getElementById('cpType').value,value:parseInt(document.getElementById('cpValue').value)||0,min:parseInt(document.getElementById('cpMin').value)||0,uses:0,max:parseInt(document.getElementById('cpMax').value)||100,expiry:document.getElementById('cpExpiry').value||'2025-12-31',status:'active'});
+  closeModal('couponModal'); renderCoupons(); showToast('Coupon created!','success');
+}
+function toggleCoupon(code){const c=adminCoupons.find(x=>x.code===code);if(c){c.status=c.status==='active'?'expired':'active';renderCoupons();showToast('Coupon updated!','success');}}
+function deleteCoupon(code){adminCoupons=adminCoupons.filter(c=>c.code!==code);renderCoupons();showToast('Coupon deleted');}
+
+// ===== BANNERS =====
+function renderBanners(){
+  const banners=[
+    {title:'Launch Sale — 40% Off',subtitle:'Limited time offer on all electronics',status:'active',page:'Home Hero'},
+    {title:'Free Delivery Week',subtitle:'Free shipping on all orders this week',status:'active',page:'Home Strip'},
+    {title:'New Arrivals — iPhones',subtitle:'Latest iPhones now in stock',status:'inactive',page:'Category'},
+  ];
+  document.getElementById('bannersList').innerHTML=banners.map(b=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;">
+      <div><div style="font-weight:600;margin-bottom:3px;">${b.title}</div><div style="font-size:12px;color:var(--muted);">${b.subtitle}</div><div style="font-size:11px;color:var(--accent);margin-top:4px;">📍 ${b.page}</div></div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="status-pill ${b.status==='active'?'active':'inactive'}">${b.status}</span>
+        <button class="act-btn" onclick="showToast('Banner updated!','success')">${b.status==='active'?'Disable':'Enable'}</button>
+        <button class="act-btn" onclick="showToast('Banner editor coming soon!','success')">Edit</button>
+      </div>
+    </div>`).join('');
+}
+
+// ===== REVIEWS =====
+function renderReviews(){
+  document.getElementById('reviewsTable').innerHTML=`
+    <thead><tr><th>Product</th><th>Customer</th><th>Rating</th><th>Review</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${adminReviews.map((r,i)=>`
+      <tr><td style="font-weight:500;font-size:12px;">${r.product}</td>
+      <td style="font-size:12px;">${r.customer}</td>
+      <td style="color:#f0c040;">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</td>
+      <td style="font-size:12px;max-width:200px;">${r.review}</td>
+      <td style="font-size:11px;color:var(--muted);">${r.date}</td>
+      <td><span class="status-pill ${r.status==='approved'?'delivered':'processing'}">${r.status}</span></td>
+      <td><div class="action-btns">
+        <button class="act-btn" onclick="approveReview(${i})">${r.status==='approved'?'Reject':'Approve'}</button>
+        <button class="act-btn del" onclick="deleteReview(${i})">Delete</button>
+      </div></td></tr>`).join('')}</tbody>`;
+}
+function approveReview(i){adminReviews[i].status=adminReviews[i].status==='approved'?'pending':'approved';renderReviews();showToast('Review updated!','success');}
+function deleteReview(i){adminReviews.splice(i,1);renderReviews();showToast('Review deleted');}
+
+// ===== ANALYTICS =====
+function renderTopProducts(){
+  const top=adminProducts.slice(0,5).map((p,i)=>({...p,sold:(5-i)*23+10}));
+  document.getElementById('topProducts').innerHTML=`
+    <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Price</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+    <tbody>${top.map((p,i)=>`
+      <tr><td style="color:var(--accent);font-weight:700;">${i+1}</td>
+      <td style="font-weight:500;">${p.name}</td>
+      <td style="text-transform:capitalize;font-size:12px;">${p.cat}</td>
+      <td style="color:var(--accent);">₹${p.price.toLocaleString()}</td>
+      <td><span class="count-badge">${p.sold}</span></td>
+      <td style="color:#2ecc71;font-weight:600;">₹${(p.price*p.sold).toLocaleString()}</td></tr>`).join('')}</tbody>`;
+}
+
+function renderMonthlyChart(){
+  const months=['Jul','Aug','Sep','Oct','Nov','Dec','Jan'];
+  const vals=[45000,62000,71000,58000,89000,124000,98000];
+  const max=Math.max(...vals);
+  document.getElementById('monthlyChart').innerHTML=vals.map((v,i)=>`
+    <div class="chart-bar" style="height:${(v/max*100)}%;background:rgba(52,152,219,0.2);border-color:rgba(52,152,219,0.4);">
+      <div class="bar-tip">${months[i]}: ₹${(v/1000).toFixed(0)}K</div>
+    </div>`).join('');
+}
+
+// ===== SETTINGS =====
+function saveSettings(){showToast('Store settings saved!','success');}
+function updateAdminCreds(){
+  const user=document.getElementById('newAdminUser').value.trim();
+  const pass=document.getElementById('newAdminPass').value;
+  if(!user||!pass){showToast('Please fill both fields','error');return;}
+  localStorage.setItem('cv_admin_creds',JSON.stringify({user,pass}));
+  showToast('Admin credentials updated!','success');
+}
+
+// ===== NAV =====
+function switchSection(el, name){
+  document.querySelectorAll('.sidebar-menu li').forEach(l=>l.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('section-'+name).classList.add('active');
+}
+
+// ===== UTILS =====
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+let toastTimer;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='cv-toast '+(type||'');
+  requestAnimationFrame(()=>t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// Close modals on outside click
+document.querySelectorAll('.cv-modal-bg').forEach(bg=>{
+  bg.addEventListener('click',e=>{if(e.target===bg) bg.classList.remove('open');});
+});
+
+// Admin panel init
+document.getElementById('adminPanel').style.display='flex';
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBcBGOPKaQ6N5DNRHp8iRtR7cI-7p_9_Gs",
+  authDomain: "cybervault-258f9.firebaseapp.com",
+  databaseURL: "https://cybervault-258f9-default-rtdb.firebaseio.com",
+  projectId: "cybervault-258f9",
+  storageBucket: "cybervault-258f9.firebasestorage.app",
+  messagingSenderId: "522041741679",
+  appId: "1:522041741679:web:06962a19a8cf911530d89a"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+</script>
+</body>
+</html>
