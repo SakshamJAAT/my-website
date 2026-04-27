@@ -1164,69 +1164,65 @@ function openProductDetail(id) {
 
   const wished = wishlist.some(x=> String(x) === pid);
 
-  // Reviews — localStorage + Firebase se fetch (Instagram mein localStorage empty hoti hai)
+  // Reviews — localStorage + Firebase (Instagram mein localStorage empty hoti hai)
   const starBar = (n) => '★'.repeat(Math.min(5,Math.max(0,Math.round(Number(n)||0))))+'☆'.repeat(Math.max(0,5-Math.round(Number(n)||0)));
 
-  function _buildReviewsHTML(revList) {
-    const avg = revList.length ? (revList.reduce((a,b)=>a+(Number(b.rating)||0),0)/revList.length).toFixed(1) : null;
-    return '<div id="cv-reviews-block" style="border-top:1px solid #252525;padding-top:16px;margin-top:4px;margin-bottom:8px;">'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">'
-      + '<div style="font-size:14px;font-weight:700;color:#f0f0f0;">⭐ Customer Reviews</div>'
-      + (avg ? '<div style="display:flex;align-items:center;gap:6px;"><span style="font-size:20px;font-weight:800;color:#f0c040;">'+avg+'</span><div><div style="font-size:11px;color:#f0c040;">'+starBar(Math.round(Number(avg)))+'</div><div style="font-size:10px;color:#555;">'+revList.length+' review'+(revList.length!==1?'s':'')+'</div></div></div>' : '')
-      + '</div>'
-      + (revList.length ? revList.slice(0,8).map(function(r){
-          return '<div style="background:#1a1a1a;border:1px solid #252525;border-radius:12px;padding:13px;margin-bottom:10px;">'
-          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
-          + '<div style="display:flex;align-items:center;gap:8px;">'
-          + '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,rgba(245,166,35,.3),rgba(255,107,53,.3));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#f5a623;">'+(r.customer||'C')[0].toUpperCase()+'</div>'
-          + '<div><div style="font-size:12px;font-weight:700;color:#f0f0f0;">'+(r.customer||'Customer')+'</div>'
-          + '<div style="font-size:10px;color:#444;">'+(r.date||'')+'</div></div>'
-          + '</div>'
-          + '<div style="font-size:13px;color:#f0c040;letter-spacing:1px;">'+starBar(r.rating||5)+'</div>'
-          + '</div>'
-          + (r.review ? '<div style="font-size:12px;color:#aaa;line-height:1.7;margin-bottom:8px;">'+r.review+'</div>' : '')
-          + '</div>';
-        }).join('')
-        : '<div style="text-align:center;padding:24px;color:#444;font-size:12px;border:1px dashed #222;border-radius:10px;">No reviews yet for this product.</div>')
-      + '</div>';
-  }
-
-  // Step 1: localStorage se load karo (instant)
-  let _localRevs = [];
-  try { _localRevs = JSON.parse(localStorage.getItem('cv_reviews')||'[]'); } catch(e){ _localRevs = []; }
-  const _lpid = pid, _lpidNum = p.id;
-  const _filterRevs = function(arr) {
-    return Array.isArray(arr) ? arr.filter(function(r){ return r.status==='approved' && (String(r.productId)===String(_lpid)||String(r.productId)===String(_lpidNum)); }) : [];
+  const _rpid = String(pid), _rpidN = String(p.id);
+  const _filterR = arr => Array.isArray(arr) ? arr.filter(r => r.status==='approved' && (String(r.productId)===_rpid||String(r.productId)===_rpidN)) : [];
+  const _buildRevHTML = revs => {
+    const avg = revs.length ? (revs.reduce((a,b)=>a+(Number(b.rating)||0),0)/revs.length).toFixed(1) : null;
+    return `<div id="cv-rev-block" style="border-top:1px solid #252525;padding-top:16px;margin-top:4px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:14px;font-weight:700;color:#f0f0f0;">⭐ Customer Reviews</div>
+        ${avg?`<div style="display:flex;align-items:center;gap:6px;"><span style="font-size:20px;font-weight:800;color:#f0c040;">${avg}</span><div><div style="font-size:11px;color:#f0c040;">${starBar(Math.round(Number(avg)))}</div><div style="font-size:10px;color:#555;">${revs.length} review${revs.length!==1?'s':''}</div></div></div>`:''}
+      </div>
+      ${revs.length ? revs.slice(0,8).map(r=>`
+        <div style="background:#1a1a1a;border:1px solid #252525;border-radius:12px;padding:13px;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,rgba(245,166,35,.3),rgba(255,107,53,.3));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#f5a623;">${(r.customer||'C')[0].toUpperCase()}</div>
+              <div><div style="font-size:12px;font-weight:700;color:#f0f0f0;">${r.customer||'Customer'}</div>
+              <div style="font-size:10px;color:#444;">${r.date||''}</div></div>
+            </div>
+            <div style="font-size:13px;color:#f0c040;letter-spacing:1px;">${starBar(r.rating||5)}</div>
+          </div>
+          ${r.review?`<div style="font-size:12px;color:#aaa;line-height:1.7;margin-bottom:8px;">${r.review}</div>`:''}
+        </div>`).join('')
+      : `<div style="text-align:center;padding:24px;color:#444;font-size:12px;border:1px dashed #222;border-radius:10px;">No reviews yet for this product.</div>`}
+    </div>`;
   };
-  const productRevs = _filterRevs(_localRevs);
-  const reviewsHTML = _buildReviewsHTML(productRevs);
 
-  // Step 2: Firebase se bhi fetch karo — async, modal open hone ke baad update karega
-  // Instagram browser mein localStorage empty hoti hai isliye Firebase zaroori hai
-  setTimeout(function() {
+  // Step 1: localStorage se turant dikhao
+  let _lsRevs = [];
+  try { _lsRevs = JSON.parse(localStorage.getItem('cv_reviews')||'[]'); } catch(e){}
+  const productRevs = _filterR(_lsRevs);
+  const reviewsHTML = _buildRevHTML(productRevs);
+
+  // Step 2: Firebase se fetch (async) — Instagram/mobile ke liye zaroori
+  setTimeout(()=>{
     try {
-      if (typeof db !== 'undefined' && db && db.collection) {
-        db.collection('reviews').where('status','==','approved').get().then(function(snap) {
-          if (!snap || snap.empty) return;
-          var fbRevs = [];
-          snap.forEach(function(doc){ fbRevs.push(doc.data()); });
-          // localStorage bhi update karo future ke liye
-          try {
-            var merged = fbRevs.slice();
-            var fbIds = {};
-            fbRevs.forEach(function(r){ fbIds[String(r.id||'')] = true; });
-            _localRevs.forEach(function(r){ if(!fbIds[String(r.id||'')]) merged.push(r); });
-            localStorage.setItem('cv_reviews', JSON.stringify(merged));
-          } catch(e2){}
-          var thisRevs = _filterRevs(fbRevs);
-          if (thisRevs.length > 0) {
-            var block = document.getElementById('cv-reviews-block');
-            if (block) block.outerHTML = _buildReviewsHTML(thisRevs);
-          }
-        }).catch(function(){});
+      if(typeof db!=='undefined' && db && db.collection) {
+        db.collection('reviews').where('status','==','approved').get()
+          .then(snap=>{
+            if(!snap||snap.empty) return;
+            const fbR=[];
+            snap.forEach(d=>fbR.push(d.data()));
+            // localStorage update karo
+            try{
+              const all=[...fbR];
+              const ids=new Set(fbR.map(r=>String(r.id||'')));
+              _lsRevs.forEach(r=>{ if(!ids.has(String(r.id||''))) all.push(r); });
+              localStorage.setItem('cv_reviews',JSON.stringify(all));
+            }catch(e){}
+            const thisRevs = _filterR(fbR);
+            if(thisRevs.length>0){
+              const block=document.getElementById('cv-rev-block');
+              if(block) block.outerHTML=_buildRevHTML(thisRevs);
+            }
+          }).catch(()=>{});
       }
-    } catch(e){}
-  }, 400);
+    }catch(e){}
+  }, 500);
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="productDetailModal"
@@ -1299,17 +1295,17 @@ function openProductDetail(id) {
           <!-- Reviews Section -->
           ${reviewsHTML}
 
-          <!-- Action Buttons — window.* direct call, Instagram WebView safe -->
+          <!-- Action Buttons - FIXED: direct onclick, not data attributes -->
           <div style="display:flex;gap:10px;margin-top:16px;padding:4px 0 8px;background:#141414;">
             <button
-              onclick="window._modalCartClick('${pid}')"
+              onclick="window.cvModalCart('${pid}')"
               ${outOfStock?'disabled':''}
-              style="flex:1;background:#1e1e1e;border:1px solid #333;color:#f0f0f0;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;padding:14px;border-radius:10px;cursor:${outOfStock?'not-allowed':'pointer'};${outOfStock?'opacity:.5;':''}">
+              style="flex:1;background:#1e1e1e;border:1px solid #333;color:#f0f0f0;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;padding:14px;border-radius:10px;cursor:pointer;${outOfStock?'opacity:.5;cursor:not-allowed;':''}">
               🛒 Add to Cart
             </button>
             ${!outOfStock?`
             <button
-              onclick="window._modalBuyClick('${pid}')"
+              onclick="window.cvModalBuy('${pid}')"
               style="flex:1;background:#f5a623;border:none;color:#000;font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;padding:14px;border-radius:10px;cursor:pointer;">
               ⚡ Buy Now
             </button>`:''}
@@ -1439,39 +1435,35 @@ function updateCart(){
     <div class="cv-cart-row total"><span>Total</span><span>₹${total.toLocaleString()}</span></div>`;
 }
 
-// Modal action handlers — window.* pe define karo taaki inline onclick se call ho sake
-// Instagram WebView mein IIFE fail hoti hai, simple window.fn() kaam karta hai
-window._modalCartClick = function(pid) {
+// ── Instagram/WebView fix: window functions ──
+window.cvModalCart = function(pid) {
   var m = document.getElementById('productDetailModal');
   if (m) m.remove();
-  addToCart(pid);
+  addToCart(String(pid));
 };
-window._modalBuyClick = function(pid) {
+window.cvModalBuy = function(pid) {
   var m = document.getElementById('productDetailModal');
   if (m) m.remove();
-  buyNow(pid);
-};
-window._modalClose = function() {
-  var m = document.getElementById('productDetailModal');
-  if (m) m.remove();
+  buyNow(String(pid));
 };
 
-// Event delegation for cart qty + del buttons + product card buttons
-// touchend + click dono handle karo — Instagram WebView ke liye
-function _cvHandleInteraction(e) {
-  // closest() polyfill for old WebViews
-  if (!Element.prototype.closest) {
-    Element.prototype.closest = function(sel) {
+// ── Event delegation ──
+function _cvClick(e) {
+  var t = e.target;
+  // closest() polyfill - Instagram WebView ke liye
+  if (!t.closest) {
+    t.closest = function(sel) {
       var el = this;
       while (el && el.nodeType === 1) {
-        if (el.matches ? el.matches(sel) : el.msMatchesSelector(sel)) return el;
-        el = el.parentElement || el.parentNode;
+        if ((el.matches||el.webkitMatchesSelector||el.msMatchesSelector).call(el,sel)) return el;
+        el = el.parentElement;
       }
       return null;
     };
   }
+
   // Cart qty / del buttons
-  var btn = e.target.closest("[data-action]");
+  var btn = t.closest("[data-action]");
   if (btn) {
     var action = btn.getAttribute("data-action");
     var id = btn.getAttribute("data-id");
@@ -1484,7 +1476,7 @@ function _cvHandleInteraction(e) {
   }
 
   // Product card wish button
-  var wishBtn = e.target.closest("[data-wish-id]");
+  var wishBtn = t.closest("[data-wish-id]");
   if (wishBtn) {
     e.stopPropagation();
     var wid = wishBtn.getAttribute("data-wish-id");
@@ -1493,7 +1485,7 @@ function _cvHandleInteraction(e) {
   }
 
   // Product card Add to Cart button
-  var cartBtn = e.target.closest("[data-cart-id]");
+  var cartBtn = t.closest("[data-cart-id]");
   if (cartBtn) {
     e.stopPropagation();
     var cid = cartBtn.getAttribute("data-cart-id");
@@ -1502,7 +1494,7 @@ function _cvHandleInteraction(e) {
   }
 
   // Product card Buy Now button
-  var buyBtn = e.target.closest("[data-buy-id]");
+  var buyBtn = t.closest("[data-buy-id]");
   if (buyBtn) {
     e.stopPropagation();
     var bid = buyBtn.getAttribute("data-buy-id");
@@ -1511,7 +1503,7 @@ function _cvHandleInteraction(e) {
   }
 
   // Product detail modal buttons
-  var pdCartBtn = e.target.closest("[data-pd-cart]");
+  var pdCartBtn = t.closest("[data-pd-cart]");
   if (pdCartBtn) {
     var pid = pdCartBtn.getAttribute("data-pd-cart");
     var modal = document.getElementById("productDetailModal");
@@ -1519,7 +1511,7 @@ function _cvHandleInteraction(e) {
     if (pid) addToCart(pid);
     return;
   }
-  var pdBuyBtn = e.target.closest("[data-pd-buy]");
+  var pdBuyBtn = t.closest("[data-pd-buy]");
   if (pdBuyBtn) {
     var pid2 = pdBuyBtn.getAttribute("data-pd-buy");
     var modal2 = document.getElementById("productDetailModal");
@@ -1529,17 +1521,13 @@ function _cvHandleInteraction(e) {
   }
 }
 
-// Register click for desktop + touchend for mobile/Instagram WebView
-document.addEventListener("click", _cvHandleInteraction);
-document.addEventListener("touchend", function(e) {
-  // touchend mein lastTouchTarget track karo to avoid double-fire
-  if (e.changedTouches && e.changedTouches.length) {
-    var touch = e.changedTouches[0];
+// Click for desktop, touchend for Instagram/mobile WebView
+document.addEventListener("click", _cvClick);
+document.addEventListener("touchend", function(te) {
+  if (te.changedTouches && te.changedTouches[0]) {
+    var touch = te.changedTouches[0];
     var el = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (el) {
-      var fakeE = { target: el, stopPropagation: function(){}, preventDefault: function(){} };
-      _cvHandleInteraction(fakeE);
-    }
+    if (el) _cvClick({ target: el });
   }
 }, { passive: true });
 function applyCoupon(){
