@@ -1004,35 +1004,31 @@ function getUsers(){return LS.get('cv_users',[]);}
 function getReviews(){return LS.get('cv_reviews', getDefaultReviews());}
 function saveReviews(r) {
   LS.set('cv_reviews', r);
-  // Firebase mein bhi approved reviews sync karo
-  // Taaki Instagram browser mein bhi reviews dikhe
+  // Firebase sync — taaki Instagram browser mein bhi reviews dikhe
   try {
-    if (typeof db_fb !== 'undefined' && db_fb && db_fb.collection) {
-      var approved = r.filter(function(x){ return x.status === 'approved'; });
-      // Pehle sab delete karo phir re-add
+    if (typeof db_fb!=='undefined' && db_fb && db_fb.collection) {
+      var approved = r.filter(function(x){ return x.status==='approved'; });
       db_fb.collection('reviews').get().then(function(snap) {
         var batch = db_fb.batch();
         snap.forEach(function(doc){ batch.delete(doc.ref); });
         approved.forEach(function(rev) {
-          var docId = String(rev.id || (rev.customer + '_' + rev.productId)).replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,100);
-          var ref = db_fb.collection('reviews').doc(docId);
-          batch.set(ref, {
-            id: String(rev.id || ''),
-            productId: String(rev.productId || ''),
-            productName: String(rev.productName || ''),
-            customer: String(rev.customer || ''),
-            rating: Number(rev.rating) || 5,
-            review: String(rev.review || ''),
+          var safe = String(rev.id||rev.customer||Date.now()).replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,80);
+          batch.set(db_fb.collection('reviews').doc(safe), {
+            id: String(rev.id||''),
+            productId: String(rev.productId||''),
+            productName: String(rev.productName||''),
+            customer: String(rev.customer||''),
+            rating: Number(rev.rating)||5,
+            review: String(rev.review||''),
             status: 'approved',
-            date: String(rev.date || ''),
-            photos: Array.isArray(rev.photos) ? rev.photos.filter(function(p){ return p && !p.startsWith('data:'); }) : []
+            date: String(rev.date||''),
+            photos: []
           });
         });
         return batch.commit();
-      }).then(function(){ console.log('✅ Reviews synced to Firebase:', approved.length); })
-        .catch(function(e){ console.log('Firebase reviews sync failed:', e.message); });
+      }).catch(function(e){ console.log('Reviews Firebase sync failed:',e.message); });
     }
-  } catch(e){ console.log('saveReviews Firebase error:', e); }
+  } catch(e){}
 }
 
 function getAdminCreds(){return LS.get('cv_admin_creds',{user:'admin',pass:'admin123'});}
