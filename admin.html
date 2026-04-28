@@ -1020,7 +1020,7 @@ function saveReviews(r){
           });
         });
         return batch.commit();
-      }).catch(function(e){console.log('Reviews sync failed:',e.message);});
+      }).catch(function(e){console.log('Reviews sync:',e.message);});
     }
   }catch(e){}
 }
