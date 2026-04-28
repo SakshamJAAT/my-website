@@ -1059,7 +1059,7 @@ function productHTML(p, showBuy=true){
         <span style="font-size:9px;font-weight:600;color:#2ecc71;">✓ In Stock</span>
       </div>`;
 
-  return `<div class="cv-product-card" onclick="openProductDetail('${pid}')">
+  return `<div class="cv-product-card" data-open-id="${pid}">
     <div class="cv-product-img" style="${hasImg?'padding:0;overflow:hidden;background:#111;':''}">
       ${hasImg
         ?`<img src="${p.images[0]}" alt="${p.name}" loading="lazy"
@@ -1091,7 +1091,7 @@ function productHTML(p, showBuy=true){
       <span style="font-size:9px;font-weight:700;color:#2ecc71;background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.25);padding:3px 8px;border-radius:20px;">🚚 COD Available</span>
       <span style="font-size:9px;font-weight:700;color:#3498db;background:rgba(52,152,219,0.08);border:1px solid rgba(52,152,219,0.25);padding:3px 8px;border-radius:20px;">🔒 Secure Payment</span>
     </div>
-    <div class="cv-pfooter">
+    <div class="cv-pfooter" onclick="event.stopPropagation()">
       <button class="cv-add-cart" data-cart-id="${pid}" ${outOfStock?'disabled style="opacity:0.5;cursor:not-allowed;"':''}>
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1h2l2.4 9h7.2l2-6H4"/><circle cx="6.5" cy="13" r="1"/><circle cx="11.5" cy="13" r="1"/></svg>
         ${outOfStock?'Out of Stock':'Add to Cart'}
@@ -1166,17 +1166,16 @@ function openProductDetail(id) {
 
   // Reviews — localStorage + Firebase (Instagram mein localStorage empty hoti hai)
   const starBar = (n) => '★'.repeat(Math.min(5,Math.max(0,Math.round(Number(n)||0))))+'☆'.repeat(Math.max(0,5-Math.round(Number(n)||0)));
-
   const _rpid = String(pid), _rpidN = String(p.id);
-  const _filterR = arr => Array.isArray(arr) ? arr.filter(r => r.status==='approved' && (String(r.productId)===_rpid||String(r.productId)===_rpidN)) : [];
+  const _filterR = arr => Array.isArray(arr) ? arr.filter(r=>r.status==='approved'&&(String(r.productId)===_rpid||String(r.productId)===_rpidN)) : [];
   const _buildRevHTML = revs => {
-    const avg = revs.length ? (revs.reduce((a,b)=>a+(Number(b.rating)||0),0)/revs.length).toFixed(1) : null;
+    const avg = revs.length?(revs.reduce((a,b)=>a+(Number(b.rating)||0),0)/revs.length).toFixed(1):null;
     return `<div id="cv-rev-block" style="border-top:1px solid #252525;padding-top:16px;margin-top:4px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div style="font-size:14px;font-weight:700;color:#f0f0f0;">⭐ Customer Reviews</div>
         ${avg?`<div style="display:flex;align-items:center;gap:6px;"><span style="font-size:20px;font-weight:800;color:#f0c040;">${avg}</span><div><div style="font-size:11px;color:#f0c040;">${starBar(Math.round(Number(avg)))}</div><div style="font-size:10px;color:#555;">${revs.length} review${revs.length!==1?'s':''}</div></div></div>`:''}
       </div>
-      ${revs.length ? revs.slice(0,8).map(r=>`
+      ${revs.length?revs.slice(0,8).map(r=>`
         <div style="background:#1a1a1a;border:1px solid #252525;border-radius:12px;padding:13px;margin-bottom:10px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
             <div style="display:flex;align-items:center;gap:8px;">
@@ -1188,41 +1187,27 @@ function openProductDetail(id) {
           </div>
           ${r.review?`<div style="font-size:12px;color:#aaa;line-height:1.7;margin-bottom:8px;">${r.review}</div>`:''}
         </div>`).join('')
-      : `<div style="text-align:center;padding:24px;color:#444;font-size:12px;border:1px dashed #222;border-radius:10px;">No reviews yet for this product.</div>`}
+      :`<div style="text-align:center;padding:24px;color:#444;font-size:12px;border:1px dashed #222;border-radius:10px;">No reviews yet for this product.</div>`}
     </div>`;
   };
-
-  // Step 1: localStorage se turant dikhao
-  let _lsRevs = [];
-  try { _lsRevs = JSON.parse(localStorage.getItem('cv_reviews')||'[]'); } catch(e){}
-  const productRevs = _filterR(_lsRevs);
-  const reviewsHTML = _buildRevHTML(productRevs);
-
-  // Step 2: Firebase se fetch (async) — Instagram/mobile ke liye zaroori
+  let _lsRevs=[];
+  try{_lsRevs=JSON.parse(localStorage.getItem('cv_reviews')||'[]');}catch(e){}
+  const productRevs=_filterR(_lsRevs);
+  const reviewsHTML=_buildRevHTML(productRevs);
+  // Firebase se bhi fetch — async
   setTimeout(()=>{
-    try {
-      if(typeof db!=='undefined' && db && db.collection) {
-        db.collection('reviews').where('status','==','approved').get()
-          .then(snap=>{
-            if(!snap||snap.empty) return;
-            const fbR=[];
-            snap.forEach(d=>fbR.push(d.data()));
-            // localStorage update karo
-            try{
-              const all=[...fbR];
-              const ids=new Set(fbR.map(r=>String(r.id||'')));
-              _lsRevs.forEach(r=>{ if(!ids.has(String(r.id||''))) all.push(r); });
-              localStorage.setItem('cv_reviews',JSON.stringify(all));
-            }catch(e){}
-            const thisRevs = _filterR(fbR);
-            if(thisRevs.length>0){
-              const block=document.getElementById('cv-rev-block');
-              if(block) block.outerHTML=_buildRevHTML(thisRevs);
-            }
-          }).catch(()=>{});
+    try{
+      if(typeof db!=='undefined'&&db&&db.collection){
+        db.collection('reviews').where('status','==','approved').get().then(snap=>{
+          if(!snap||snap.empty)return;
+          const fbR=[];snap.forEach(d=>fbR.push(d.data()));
+          try{const all=[...fbR];const ids=new Set(fbR.map(r=>String(r.id||'')));_lsRevs.forEach(r=>{if(!ids.has(String(r.id||'')))all.push(r);});localStorage.setItem('cv_reviews',JSON.stringify(all));}catch(e){}
+          const thisRevs=_filterR(fbR);
+          if(thisRevs.length>0){const block=document.getElementById('cv-rev-block');if(block)block.outerHTML=_buildRevHTML(thisRevs);}
+        }).catch(()=>{});
       }
     }catch(e){}
-  }, 500);
+  },500);
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="productDetailModal"
@@ -1435,7 +1420,7 @@ function updateCart(){
     <div class="cv-cart-row total"><span>Total</span><span>₹${total.toLocaleString()}</span></div>`;
 }
 
-// ── Instagram/WebView fix: window functions ──
+// Modal button handlers — window.* se call hote hain (Instagram safe)
 window.cvModalCart = function(pid) {
   var m = document.getElementById('productDetailModal');
   if (m) m.remove();
@@ -1447,23 +1432,23 @@ window.cvModalBuy = function(pid) {
   buyNow(String(pid));
 };
 
-// ── Event delegation ──
+// Event delegation — click + touchend dono
 function _cvClick(e) {
   var t = e.target;
-  // closest() polyfill - Instagram WebView ke liye
-  if (!t.closest) {
-    t.closest = function(sel) {
-      var el = this;
-      while (el && el.nodeType === 1) {
-        if ((el.matches||el.webkitMatchesSelector||el.msMatchesSelector).call(el,sel)) return el;
-        el = el.parentElement;
-      }
-      return null;
-    };
-  }
+  if (!t) return;
+
+  // closest polyfill — purane WebViews ke liye
+  var _closest = function(el, sel) {
+    while (el && el.nodeType === 1) {
+      if (el.matches && el.matches(sel)) return el;
+      if (el.msMatchesSelector && el.msMatchesSelector(sel)) return el;
+      el = el.parentElement;
+    }
+    return null;
+  };
 
   // Cart qty / del buttons
-  var btn = t.closest("[data-action]");
+  var btn = _closest(t, "[data-action]");
   if (btn) {
     var action = btn.getAttribute("data-action");
     var id = btn.getAttribute("data-id");
@@ -1476,7 +1461,7 @@ function _cvClick(e) {
   }
 
   // Product card wish button
-  var wishBtn = t.closest("[data-wish-id]");
+  var wishBtn = _closest(t, "[data-wish-id]");
   if (wishBtn) {
     e.stopPropagation();
     var wid = wishBtn.getAttribute("data-wish-id");
@@ -1485,7 +1470,7 @@ function _cvClick(e) {
   }
 
   // Product card Add to Cart button
-  var cartBtn = t.closest("[data-cart-id]");
+  var cartBtn = _closest(t, "[data-cart-id]");
   if (cartBtn) {
     e.stopPropagation();
     var cid = cartBtn.getAttribute("data-cart-id");
@@ -1494,7 +1479,7 @@ function _cvClick(e) {
   }
 
   // Product card Buy Now button
-  var buyBtn = t.closest("[data-buy-id]");
+  var buyBtn = _closest(t, "[data-buy-id]");
   if (buyBtn) {
     e.stopPropagation();
     var bid = buyBtn.getAttribute("data-buy-id");
@@ -1503,7 +1488,7 @@ function _cvClick(e) {
   }
 
   // Product detail modal buttons
-  var pdCartBtn = t.closest("[data-pd-cart]");
+  var pdCartBtn = _closest(t, "[data-pd-cart]");
   if (pdCartBtn) {
     var pid = pdCartBtn.getAttribute("data-pd-cart");
     var modal = document.getElementById("productDetailModal");
@@ -1511,7 +1496,7 @@ function _cvClick(e) {
     if (pid) addToCart(pid);
     return;
   }
-  var pdBuyBtn = t.closest("[data-pd-buy]");
+  var pdBuyBtn = _closest(t, "[data-pd-buy]");
   if (pdBuyBtn) {
     var pid2 = pdBuyBtn.getAttribute("data-pd-buy");
     var modal2 = document.getElementById("productDetailModal");
@@ -1519,17 +1504,28 @@ function _cvClick(e) {
     if (pid2) buyNow(pid2);
     return;
   }
+
+  // Card click — modal open (data-open-id)
+  var cardEl = _closest(t, "[data-open-id]");
+  if (cardEl) {
+    var oid = cardEl.getAttribute("data-open-id");
+    if (oid) openProductDetail(oid);
+    return;
+  }
 }
 
-// Click for desktop, touchend for Instagram/mobile WebView
+// Register both click and touchend
 document.addEventListener("click", _cvClick);
 document.addEventListener("touchend", function(te) {
   if (te.changedTouches && te.changedTouches[0]) {
     var touch = te.changedTouches[0];
     var el = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (el) _cvClick({ target: el });
+    if (el) {
+      te.preventDefault();
+      _cvClick({ target: el });
+    }
   }
-}, { passive: true });
+}, { passive: false });
 function applyCoupon(){
   const code = document.getElementById('couponInput').value.toUpperCase();
   if(code==='NEXORA20') showToast('Coupon NEXORA20 applied! 20% extra off','success');
@@ -2725,7 +2721,7 @@ function _attachAllListeners() {
 
   // Payment method selection (data-pay attribute)
   document.addEventListener('click', function(e) {
-    var payEl = e.target.closest('[data-pay]');
+    var payEl = _closest(t, '[data-pay]');
     if (payEl) {
       var val = payEl.getAttribute('data-pay');
       if (val) selectPayOpt(val);
